@@ -5,6 +5,8 @@
     <video v-if="type === 'video'" :src="src" ref="videoElement"></video>
     <span>startTrim: {{ startTrim }}sec</span>
     <span>endTrim: {{ endTrim }}sec</span>
+    <span>Total duration: {{ totalDuration }}sec</span>
+    <span>Remaining time: {{ remainingTime }}sec</span>
     <div class="trimplayer" ref="trimplayer"></div>
   </div>
 </template>
@@ -29,12 +31,16 @@ const props = defineProps({
 const videoElement = ref(null);
 let audioPlayer = null;
 const trimplayer = ref(null);
+const totalDuration = ref(0);
+
 onMounted(() => {
   audioPlayer = new AudioPlayer(trimplayer.value, videoElement.value);
   audioPlayer.prepareAudio(props.type, props.src);
   audioPlayer.getInstance().on("ready", () => {
+    remainingTime.value = totalDuration.value = audioPlayer.getDuration();
     initTrimTime();
     initRegions();
+    updateRemainingTime();
   });
 });
 
@@ -81,6 +87,15 @@ const initRegions = () => {
   wsRegions.on("region-updated", (region) => {
     startTrim.value = region.start;
     endTrim.value = region.end;
+  });
+};
+
+const remainingTime = ref(0);
+const updateRemainingTime = () => {
+  const ws = audioPlayer.getInstance();
+  ws.on("audioprocess", () => {
+    const currentTime = ws.getCurrentTime();
+    remainingTime.value = totalDuration.value - currentTime;
   });
 };
 </script>
